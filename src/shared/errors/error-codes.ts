@@ -1,0 +1,20 @@
+/**
+ * 통합 에러 코드 (클라이언트 식별용)
+ * 모든 에러에서 이 코드만 사용.
+ */
+export const ErrorCode = {
+  // 4xx
+  BAD_REQUEST: "BAD_REQUEST",
+  VALIDATION_ERROR: "VALIDATION_ERROR",
+  UNAUTHORIZED: "UNAUTHORIZED",
+  FORBIDDEN: "FORBIDDEN",
+  NOT_FOUND: "NOT_FOUND",
+  CONFLICT: "CONFLICT",
+  UNPROCESSABLE_ENTITY: "UNPROCESSABLE_ENTITY",
+  TOO_MANY_REQUESTS: "TOO_MANY_REQUESTS",
+  // 5xx
+  INTERNAL_SERVER_ERROR: "INTERNAL_SERVER_ERROR",
+  SERVICE_UNAVAILABLE: "SERVICE_UNAVAILABLE",
+} as const;
+
+export type ErrorCodeType = (typeof ErrorCode)[keyof typeof ErrorCode];
