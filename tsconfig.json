@@ -12,7 +12,6 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "declaration": true,
-    "declarationMap": true,
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
@@ -21,10 +20,9 @@
       "@/infrastructure/*": ["src/infrastructure/*"],
       "@/presentation/*": ["src/presentation/*"],
       "@/validation/*": ["src/validation/*"],
-      "@/shared/*": ["src/shared/*"],
-      "@/config/*": ["config/*"]
+      "@/shared/*": ["src/shared/*"]
     }
   },
-  "include": ["src/**/*", "config/**/*", "**/*.spec.ts", "**/*.test.ts"],
+  "include": ["src/**/*", "tests/**/*"],
   "exclude": ["node_modules", "dist"]
 }
