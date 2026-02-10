@@ -1,6 +1,6 @@
 import type { User } from "@/domain/entities/user.entity.js";
 import type { IUserRepository } from "@/application/repositories/user.repository.interface.js";
-import { validateUserId } from "@/validation/user.validation.js";
+import { getUserSchema, parseWithZod } from "@/validation/user.validation.js";
 
 /** GetUser Use Case 입력 */
 export interface GetUserInput {
@@ -27,9 +27,9 @@ export class GetUserUseCase {
    * @returns User 또는 null
    */
   async execute(input: GetUserInput): Promise<GetUserResult> {
-    // ID 검증
-    const id = validateUserId(input?.id);
-    const user = await this.repo.findById(id);
+    // Zod 스키마로 검증
+    const validated = parseWithZod(getUserSchema, input);
+    const user = await this.repo.findById(validated.id);
     return { user };
   }
 }

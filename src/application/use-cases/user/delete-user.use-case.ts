@@ -1,5 +1,5 @@
 import type { IUserRepository } from "@/application/repositories/user.repository.interface.js";
-import { validateUserId } from "@/validation/user.validation.js";
+import { deleteUserSchema, parseWithZod } from "@/validation/user.validation.js";
 
 /** DeleteUser Use Case 입력 */
 export interface DeleteUserInput {
@@ -19,8 +19,8 @@ export class DeleteUserUseCase {
    * @param input - User ID
    */
   async execute(input: DeleteUserInput): Promise<void> {
-    // ID 검증
-    const id = validateUserId(input?.id);
-    await this.repo.delete(id);
+    // Zod 스키마로 검증
+    const validated = parseWithZod(deleteUserSchema, input);
+    await this.repo.delete(validated.id);
   }
 }

@@ -1,6 +1,6 @@
 import type { User } from "@/domain/entities/user.entity.js";
 import type { IUserRepository } from "@/application/repositories/user.repository.interface.js";
-import { validatePageSize } from "@/validation/user.validation.js";
+import { listUsersSchema, parseWithZod } from "@/validation/user.validation.js";
 
 /** ListUsers Use Case 입력 */
 export interface ListUsersInput {
@@ -35,9 +35,8 @@ export class ListUsersUseCase {
    * @returns User 목록과 메타 정보
    */
   async execute(input: ListUsersInput): Promise<ListUsersResult> {
-    const raw = input ?? {};
-    // page, size 검증
-    const { page, size } = validatePageSize(raw.page, raw.size);
+    // Zod 스키마로 검증
+    const { page, size } = parseWithZod(listUsersSchema, input);
     // offset 계산 (0부터 시작)
     const offset = (page - 1) * size;
     const { users, total } = await this.repo.list({ offset, limit: size });

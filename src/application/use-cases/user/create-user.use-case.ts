@@ -1,6 +1,6 @@
 import type { User } from "@/domain/entities/user.entity.js";
 import type { IUserRepository } from "@/application/repositories/user.repository.interface.js";
-import { validateEmail, validateName } from "@/validation/user.validation.js";
+import { createUserSchema, parseWithZod } from "@/validation/user.validation.js";
 
 /** CreateUser Use Case 입력 */
 export interface CreateUserInput {
@@ -29,11 +29,9 @@ export class CreateUserUseCase {
    * @returns 생성된 User
    */
   async execute(input: CreateUserInput): Promise<CreateUserResult> {
-    const raw = input ?? {};
-    // email, name 검증
-    const email = validateEmail(raw.email, true);
-    const name = validateName(raw.name, true);
-    const user = await this.repo.create({ email, name });
+    // Zod 스키마로 검증
+    const validated = parseWithZod(createUserSchema, input);
+    const user = await this.repo.create(validated);
     return { user };
   }
 }

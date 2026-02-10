@@ -32,7 +32,7 @@ export function createUserRouter(useCases: UserUseCases): Router {
         res.status(404).json({ error: { code: "NOT_FOUND", message: "User not found" } });
         return;
       }
-      res.json({ data: result.user });
+      res.json({ data: result.user, meta: {} });
     } catch (err) {
       next(err);
     }
@@ -44,7 +44,7 @@ export function createUserRouter(useCases: UserUseCases): Router {
   router.post("/", async (req, res, next) => {
     try {
       const result = await useCases.createUser.execute(req.body);
-      res.status(201).json({ data: result.user });
+      res.status(201).json({ data: result.user, meta: {} });
     } catch (err) {
       next(err);
     }
@@ -63,7 +63,7 @@ export function createUserRouter(useCases: UserUseCases): Router {
         res.status(404).json({ error: { code: "NOT_FOUND", message: "User not found" } });
         return;
       }
-      res.json({ data: result.user });
+      res.json({ data: result.user, meta: {} });
     } catch (err) {
       next(err);
     }
@@ -91,7 +91,19 @@ export function createUserRouter(useCases: UserUseCases): Router {
       const page = parseInt(req.query.page as string, 10) || 1;
       const size = parseInt(req.query.size as string, 10) || 10;
       const result = await useCases.listUsers.execute({ page, size });
-      res.json({ data: result });
+      
+      // { data, meta } 포맷 - meta에 페이지네이션 정보 포함
+      res.json({
+        data: result.users,
+        meta: {
+          pagination: {
+            page: result.page,
+            size: result.size,
+            total: result.total,
+            totalPages: Math.ceil(result.total / result.size),
+          },
+        },
+      });
     } catch (err) {
       next(err);
     }
