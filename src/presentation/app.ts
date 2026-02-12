@@ -6,7 +6,9 @@ import { createUserRouter, type UserUseCases } from "./routes/user.routes.js";
 import { createAuthRouter } from "./routes/auth.routes.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { createRateLimiter } from "./middleware/rate-limit.middleware.js";
+import { requestLogger } from "./middleware/request-logger.middleware.js";
 import { configurePassport } from "@/infrastructure/auth/passport.config.js";
+import Logger from "@/shared/logger/logger.js";
 
 /**
  * Express 앱 생성 및 설정
@@ -28,6 +30,9 @@ export function createApp(useCases: UserUseCases): Express {
   // JSON body 파싱 미들웨어
   app.use(express.json());
 
+  // HTTP 요청 로깅
+  app.use(requestLogger);
+
   // Passport 초기화 (OAuth)
   configurePassport();
   app.use(passport.initialize());
@@ -37,11 +42,19 @@ export function createApp(useCases: UserUseCases): Express {
     res.json({ status: "ok" });
   });
 
+  // API v1 라우트
+  const v1Router = express.Router();
+  
   // Auth 라우트 마운트 (OAuth)
-  app.use("/auth", createAuthRouter());
+  v1Router.use("/auth", createAuthRouter());
 
   // User 라우트 마운트
-  app.use("/users", createUserRouter(useCases));
+  v1Router.use("/users", createUserRouter(useCases));
+
+  // v1 라우터를 앱에 마운트
+  app.use("/v1", v1Router);
+
+  Logger.info("✅ API v1 routes registered");
 
   // 전역 에러 핸들러 (마지막에 등록)
   app.use(errorHandler);
