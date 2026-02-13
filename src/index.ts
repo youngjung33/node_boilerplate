@@ -1,9 +1,13 @@
 import { createWiredApp } from "./container.js";
 import Logger from "@/shared/logger/logger.js";
 import { env } from "../config/env.js";
+import { startFcmBatchRunner } from "./jobs/fcm-batch.runner.js";
 
 // DI 컨테이너에서 wired된 앱 가져오기
 const app = createWiredApp();
+
+// FCM 배치 러너 시작 (ENABLE_FCM=true일 때만)
+startFcmBatchRunner();
 
 // 서버 시작
 app.listen(env.PORT, () => {

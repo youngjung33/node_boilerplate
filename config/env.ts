@@ -25,6 +25,14 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.string().default("900000").transform(Number).pipe(z.number().int().min(0)), // 15분
   RATE_LIMIT_MAX: z.string().default("100").transform(Number).pipe(z.number().int().min(1)),
   RATE_LIMIT_DISABLED: z.string().default("false").transform((v) => v === "true"),
+  
+  // FCM 기능 스위치
+  ENABLE_FCM: z.string().default("false").transform((v) => v === "true"),
+  
+  // FCM 설정
+  FCM_SERVICE_ACCOUNT_PATH: z.string().optional(),
+  FCM_BATCH_CRON: z.string().default("*/5 * * * *"), // 매 5분마다
+  FCM_BATCH_SIZE: z.string().default("100").transform(Number).pipe(z.number().int().min(1).max(500)),
 });
 
 /**
