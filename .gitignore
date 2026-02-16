@@ -5,3 +5,8 @@ coverage
 *.log
 logs/
 PLAN.md
+
+# Database files
+data/
+*.sqlite
+*.sqlite-journal

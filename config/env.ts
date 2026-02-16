@@ -1,4 +1,8 @@
 import { z } from "zod";
+import { config } from "dotenv";
+
+// .env 파일 로드
+config();
 
 /**
  * 환경 변수 스키마 (Zod)
@@ -33,6 +37,26 @@ const envSchema = z.object({
   FCM_SERVICE_ACCOUNT_PATH: z.string().optional(),
   FCM_BATCH_CRON: z.string().default("*/5 * * * *"), // 매 5분마다
   FCM_BATCH_SIZE: z.string().default("100").transform(Number).pipe(z.number().int().min(1).max(500)),
+  
+  // DB 타입 선택
+  DB_TYPE: z.enum(["memory", "sqlite", "mariadb", "mongodb", "supabase"]).default("memory"),
+  
+  // SQLite 설정
+  DB_SQLITE_PATH: z.string().default("./data/db.sqlite"),
+  
+  // Supabase 설정
+  DB_SUPABASE_URL: z.string().optional(),
+  DB_SUPABASE_KEY: z.string().optional(),
+  
+  // MariaDB 설정
+  DB_MARIADB_HOST: z.string().default("localhost"),
+  DB_MARIADB_PORT: z.string().default("3306").transform(Number).pipe(z.number().int().min(1).max(65535)),
+  DB_MARIADB_USER: z.string().default("root"),
+  DB_MARIADB_PASSWORD: z.string().default(""),
+  DB_MARIADB_DATABASE: z.string().default("mydb"),
+  
+  // MongoDB 설정
+  DB_MONGODB_URI: z.string().default("mongodb://localhost:27017/mydb"),
 });
 
 /**
