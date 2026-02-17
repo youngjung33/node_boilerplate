@@ -4,18 +4,28 @@ import helmet from "helmet";
 import passport from "passport";
 import { createUserRouter, type UserUseCases } from "./routes/user.routes.js";
 import { createAuthRouter } from "./routes/auth.routes.js";
+import { createPaymentRouter, type PaymentUseCases } from "./routes/payment.routes.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { createRateLimiter } from "./middleware/rate-limit.middleware.js";
 import { requestLogger } from "./middleware/request-logger.middleware.js";
 import { configurePassport } from "@/infrastructure/auth/passport.config.js";
+import { stripeClient } from "@/infrastructure/payment/stripe.client.js";
+import { googlePlayClient } from "@/infrastructure/payment/google-play.client.js";
+import { appleIAPClient } from "@/infrastructure/payment/apple-iap.client.js";
+import { env } from "../../config/env.js";
 import Logger from "@/shared/logger/logger.js";
 
 /**
+ * 모든 Use Cases 타입
+ */
+export interface AllUseCases extends UserUseCases, PaymentUseCases {}
+
+/**
  * Express 앱 생성 및 설정
- * @param useCases - User Use Case 인스턴스들
+ * @param useCases - 모든 Use Case 인스턴스들
  * @returns 설정된 Express 앱
  */
-export function createApp(useCases: UserUseCases): Express {
+export function createApp(useCases: AllUseCases): Express {
   const app = express();
 
   // Helmet - 보안 헤더 설정
@@ -27,7 +37,14 @@ export function createApp(useCases: UserUseCases): Express {
   // Rate Limiting - API 남용 방지
   app.use(createRateLimiter());
 
-  // JSON body 파싱 미들웨어
+  // Stripe 웹훅을 위한 raw body 처리
+  // Stripe 서명 검증을 위해 raw body가 필요하므로 /webhooks/stripe 경로만 특별 처리
+  app.use(
+    "/v1/payment/webhooks/stripe",
+    express.raw({ type: "application/json" })
+  );
+
+  // JSON body 파싱 미들웨어 (다른 모든 경로)
   app.use(express.json());
 
   // HTTP 요청 로깅
@@ -36,6 +53,16 @@ export function createApp(useCases: UserUseCases): Express {
   // Passport 초기화 (OAuth)
   configurePassport();
   app.use(passport.initialize());
+
+  // Payment 클라이언트 초기화 (ENABLE_PAYMENT=true일 때만)
+  if (env.ENABLE_PAYMENT) {
+    stripeClient.initialize();
+    googlePlayClient.initialize().catch((err) => {
+      Logger.error("Google Play client initialization failed", err);
+    });
+    appleIAPClient.initialize();
+    Logger.info("✅ Payment clients initialized");
+  }
 
   // Health check 엔드포인트 (보안 최소, 민감 정보 없음)
   app.get("/health", (req, res) => {
@@ -50,6 +77,12 @@ export function createApp(useCases: UserUseCases): Express {
 
   // User 라우트 마운트
   v1Router.use("/users", createUserRouter(useCases));
+
+  // Payment 라우트 마운트 (ENABLE_PAYMENT=true일 때만)
+  if (env.ENABLE_PAYMENT) {
+    v1Router.use("/payment", createPaymentRouter(useCases));
+    Logger.info("✅ Payment routes registered");
+  }
 
   // v1 라우터를 앱에 마운트
   app.use("/v1", v1Router);

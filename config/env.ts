@@ -57,6 +57,21 @@ const envSchema = z.object({
   
   // MongoDB 설정
   DB_MONGODB_URI: z.string().default("mongodb://localhost:27017/mydb"),
+  
+  // Payment 기능 스위치
+  ENABLE_PAYMENT: z.string().default("false").transform((v) => v === "true"),
+  
+  // Stripe 설정 (일반 결제)
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  
+  // Apple IAP 설정 (앱 결제)
+  APPLE_IAP_SHARED_SECRET: z.string().optional(),
+  
+  // Google Play 설정 (앱 결제 - Pub/Sub)
+  GOOGLE_PLAY_SERVICE_ACCOUNT_PATH: z.string().optional(),
+  GOOGLE_PLAY_PUBSUB_SUBSCRIPTION: z.string().optional(),
+  GOOGLE_PLAY_PACKAGE_NAME: z.string().optional(),
 });
 
 /**
