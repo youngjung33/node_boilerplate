@@ -1,0 +1,164 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: node_boilerplate_app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      # 서버 설정
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      
+      # JWT 설정
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      
+      # DB 설정 (환경에 따라 선택)
+      DB_TYPE: ${DB_TYPE:-memory}
+      
+      # SQLite (볼륨 마운트 경로)
+      DB_SQLITE_PATH: ${DB_SQLITE_PATH:-/app/data/db.sqlite}
+      
+      # MariaDB (서비스 연결)
+      DB_MARIADB_HOST: ${DB_MARIADB_HOST:-mariadb}
+      DB_MARIADB_PORT: ${DB_MARIADB_PORT:-3306}
+      DB_MARIADB_USER: ${DB_MARIADB_USER:-root}
+      DB_MARIADB_PASSWORD: ${DB_MARIADB_PASSWORD}
+      DB_MARIADB_DATABASE: ${DB_MARIADB_DATABASE:-mydb}
+      
+      # MongoDB (서비스 연결)
+      DB_MONGODB_URI: ${DB_MONGODB_URI:-mongodb://mongodb:27017/mydb}
+      
+      # Supabase
+      DB_SUPABASE_URL: ${DB_SUPABASE_URL}
+      DB_SUPABASE_KEY: ${DB_SUPABASE_KEY}
+      
+      # OAuth 설정
+      ENABLE_OAUTH: ${ENABLE_OAUTH:-false}
+      OAUTH_GOOGLE_CLIENT_ID: ${OAUTH_GOOGLE_CLIENT_ID}
+      OAUTH_GOOGLE_CLIENT_SECRET: ${OAUTH_GOOGLE_CLIENT_SECRET}
+      OAUTH_GOOGLE_CALLBACK_URL: ${OAUTH_GOOGLE_CALLBACK_URL}
+      
+      # Rate Limiting
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
+      RATE_LIMIT_DISABLED: ${RATE_LIMIT_DISABLED:-false}
+      
+      # Payment 설정
+      ENABLE_PAYMENT: ${ENABLE_PAYMENT:-false}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      APPLE_IAP_SHARED_SECRET: ${APPLE_IAP_SHARED_SECRET}
+      GOOGLE_PLAY_SERVICE_ACCOUNT_PATH: ${GOOGLE_PLAY_SERVICE_ACCOUNT_PATH}
+      GOOGLE_PLAY_PUBSUB_SUBSCRIPTION: ${GOOGLE_PLAY_PUBSUB_SUBSCRIPTION}
+      GOOGLE_PLAY_PACKAGE_NAME: ${GOOGLE_PLAY_PACKAGE_NAME}
+      
+      # FCM 설정
+      ENABLE_FCM: ${ENABLE_FCM:-false}
+      FCM_SERVICE_ACCOUNT_PATH: ${FCM_SERVICE_ACCOUNT_PATH}
+      FCM_BATCH_CRON: ${FCM_BATCH_CRON:-*/5 * * * *}
+      FCM_BATCH_SIZE: ${FCM_BATCH_SIZE:-100}
+    
+    volumes:
+      # SQLite 데이터 영속화
+      - sqlite_data:/app/data
+      # 로그 파일 영속화
+      - logs:/app/logs
+      # Service Account 키 파일 마운트 (선택 - FCM/Google Play 사용 시만 필요)
+      # - ./service-accounts:/app/service-accounts:ro
+    
+    depends_on:
+      - mariadb
+      - mongodb
+    
+    networks:
+      - app_network
+    
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # ============================================
+  # MariaDB (선택적 - DB_TYPE=mariadb일 때 사용)
+  # ============================================
+  mariadb:
+    image: mariadb:11
+    container_name: node_boilerplate_mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_MARIADB_PASSWORD:-rootpassword}
+      MARIADB_DATABASE: ${DB_MARIADB_DATABASE:-mydb}
+      MARIADB_USER: ${DB_MARIADB_USER:-appuser}
+      MARIADB_PASSWORD: ${DB_MARIADB_PASSWORD:-apppassword}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # DB_TYPE이 mariadb가 아니면 시작하지 않음
+    profiles:
+      - mariadb
+
+  # ============================================
+  # MongoDB (선택적 - DB_TYPE=mongodb일 때 사용)
+  # ============================================
+  mongodb:
+    image: mongo:7
+    container_name: node_boilerplate_mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-rootpassword}
+      MONGO_INITDB_DATABASE: ${DB_MARIADB_DATABASE:-mydb}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - app_network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # DB_TYPE이 mongodb가 아니면 시작하지 않음
+    profiles:
+      - mongodb
+
+# ============================================
+# Volumes
+# ============================================
+volumes:
+  sqlite_data:
+    driver: local
+  logs:
+    driver: local
+  mariadb_data:
+    driver: local
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  app_network:
+    driver: bridge

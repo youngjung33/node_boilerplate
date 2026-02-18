@@ -13,24 +13,45 @@
 
 ## 기술 스택
 
-- Node.js + TypeScript
-- Express
-- Zod (검증)
-- Vitest (테스트)
-- JWT (인증)
-- Passport (OAuth)
-- FCM (푸시)
-
-## 주요 특징
-
-- **다중 DB 지원**: Supabase, SQLite, MariaDB, MongoDB (env로 선택)
-- **기능 스위치**: OAuth, 결제, FCM을 env로 on/off
-- **API 버저닝**: `/v1/users`
-- **통일 응답**: `{ data, meta }`
-- **TDD**: Use Case 단위 테스트
+- Node.js + TypeScript + Express
+- Zod (검증), Vitest (테스트), Winston (로깅)
+- JWT (인증), Passport (OAuth)
+- Stripe, Google Play, Apple IAP (결제)
+- FCM (푸시), node-cron (배치)
 
 ## 구조
 
+```
+src/
+├── domain/
+│   └── entities/              # User, Payment, FCM Message
+├── application/
+│   ├── repositories/          # Repository 인터페이스
+│   └── use-cases/
+│       ├── user/              # User CRUD (5개)
+│       └── payment/           # Payment 검증/환불/조회/분쟁 (7개)
+├── infrastructure/
+│   ├── repositories/          # In-Memory 구현체
+│   ├── db/                    # SQLite, Supabase, MariaDB, MongoDB
+│   ├── auth/                  # Passport OAuth 설정
+│   ├── payment/               # Stripe, Google Play, Apple IAP
+│   └── fcm/                   # Firebase Admin SDK
+├── presentation/
+│   ├── routes/                # user, auth, payment
+│   └── middleware/            # JWT, Rate Limit, Error Handler, Logger
+├── validation/                # Zod 스키마
+├── shared/
+│   ├── errors/                # AppError, ValidationError, NotFoundError, ConflictError
+│   └── logger/                # Winston Logger
+├── jobs/                      # FCM Batch, Google Play Pub/Sub
+├── container.ts               # DI Container
+└── index.ts                   # Entry Point
+
+config/
+└── env.ts                     # Zod 기반 환경 변수 검증
+
+tests/
+└── user/                      # Use Case 테스트 (26개)
 ```
 src/
 ├── domain/              # 엔티티
@@ -41,3 +62,24 @@ src/
 ├── shared/              # Logger, 에러
 └── container.ts         # DI Container
 ```
+
+## API
+
+**v1 엔드포인트:**
+- `GET /health`
+- `GET /v1/users`, `POST /v1/users`, `GET /v1/users/:id`, `PATCH /v1/users/:id`, `DELETE /v1/users/:id`
+- `GET /v1/auth/google`, `GET /v1/auth/google/callback`
+- `POST /v1/payment/webhooks/stripe`, `POST /v1/payment/webhooks/apple`
+- `GET /v1/payment/:paymentId`, `GET /v1/payment/users/:userId`, `POST /v1/payment/:paymentId/refund`
+
+응답 포맷: `{ data, meta }`
+
+## 특징
+
+- **다중 DB**: env로 DB 선택 (Repository 패턴)
+- **기능 스위치**: ENABLE_* 플래그로 기능 on/off
+- **TDD**: Use Case 단위 테스트
+- **보안**: JWT, OAuth, Rate Limit, CORS, Helmet
+- **결제**: Stripe, Google Play Pub/Sub, Apple IAP (환불/분쟁 지원)
+- **배치**: FCM 푸시 스케줄링 (node-cron)
+- **Docker**: 멀티스테이지 빌드, Profile 기반 DB 선택
