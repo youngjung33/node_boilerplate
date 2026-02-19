@@ -5,6 +5,7 @@ import passport from "passport";
 import { createUserRouter, type UserUseCases } from "./routes/user.routes.js";
 import { createAuthRouter } from "./routes/auth.routes.js";
 import { createPaymentRouter, type PaymentUseCases } from "./routes/payment.routes.js";
+import { createFileRouter, type FileUseCases } from "./routes/file.routes.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { createRateLimiter } from "./middleware/rate-limit.middleware.js";
 import { requestLogger } from "./middleware/request-logger.middleware.js";
@@ -12,13 +13,14 @@ import { configurePassport } from "@/infrastructure/auth/passport.config.js";
 import { stripeClient } from "@/infrastructure/payment/stripe.client.js";
 import { googlePlayClient } from "@/infrastructure/payment/google-play.client.js";
 import { appleIAPClient } from "@/infrastructure/payment/apple-iap.client.js";
+import { s3Client } from "@/infrastructure/storage/s3.client.js";
 import { env } from "../../config/env.js";
 import Logger from "@/shared/logger/logger.js";
 
 /**
  * 모든 Use Cases 타입
  */
-export interface AllUseCases extends UserUseCases, PaymentUseCases {}
+export interface AllUseCases extends UserUseCases, PaymentUseCases, FileUseCases {}
 
 /**
  * Express 앱 생성 및 설정
@@ -64,6 +66,12 @@ export function createApp(useCases: AllUseCases): Express {
     Logger.info("✅ Payment clients initialized");
   }
 
+  // S3 클라이언트 초기화 (ENABLE_FILE_UPLOAD=true일 때만)
+  if (env.ENABLE_FILE_UPLOAD) {
+    s3Client.initialize();
+    Logger.info("✅ S3 File Upload client initialized");
+  }
+
   // Health check 엔드포인트 (보안 최소, 민감 정보 없음)
   app.get("/health", (req, res) => {
     res.json({ status: "ok" });
@@ -82,6 +90,12 @@ export function createApp(useCases: AllUseCases): Express {
   if (env.ENABLE_PAYMENT) {
     v1Router.use("/payment", createPaymentRouter(useCases));
     Logger.info("✅ Payment routes registered");
+  }
+
+  // File 라우트 마운트 (ENABLE_FILE_UPLOAD=true일 때만)
+  if (env.ENABLE_FILE_UPLOAD) {
+    v1Router.use("/files", createFileRouter(useCases));
+    Logger.info("✅ File routes registered");
   }
 
   // v1 라우터를 앱에 마운트

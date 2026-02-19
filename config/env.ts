@@ -72,6 +72,17 @@ const envSchema = z.object({
   GOOGLE_PLAY_SERVICE_ACCOUNT_PATH: z.string().optional(),
   GOOGLE_PLAY_PUBSUB_SUBSCRIPTION: z.string().optional(),
   GOOGLE_PLAY_PACKAGE_NAME: z.string().optional(),
+  
+  // File Upload 기능 스위치
+  ENABLE_FILE_UPLOAD: z.string().default("false").transform((v) => v === "true"),
+  
+  // AWS S3 설정 (파일 업로드)
+  AWS_S3_BUCKET: z.string().optional(),
+  AWS_REGION: z.string().default("us-east-1"),
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  FILE_SIZE_LIMIT: z.string().default("10485760").transform(Number).pipe(z.number().int().min(0)), // 10MB
+  FILE_COMPRESS_THRESHOLD: z.string().default("2097152").transform(Number).pipe(z.number().int().min(0)), // 2MB
 });
 
 /**

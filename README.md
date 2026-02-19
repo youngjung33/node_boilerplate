@@ -18,26 +18,29 @@
 - JWT (인증), Passport (OAuth)
 - Stripe, Google Play, Apple IAP (결제)
 - FCM (푸시), node-cron (배치)
+- AWS S3 (파일 업로드), Sharp (이미지 압축)
 
 ## 구조
 
 ```
 src/
 ├── domain/
-│   └── entities/              # User, Payment, FCM Message
+│   └── entities/              # User, Payment, File, FCM Message
 ├── application/
 │   ├── repositories/          # Repository 인터페이스
 │   └── use-cases/
 │       ├── user/              # User CRUD (5개)
-│       └── payment/           # Payment 검증/환불/조회/분쟁 (7개)
+│       ├── payment/           # Payment 검증/환불/조회/분쟁 (7개)
+│       └── file/              # File 업로드/조회/삭제 (3개)
 ├── infrastructure/
 │   ├── repositories/          # In-Memory 구현체
 │   ├── db/                    # SQLite, Supabase, MariaDB, MongoDB
 │   ├── auth/                  # Passport OAuth 설정
 │   ├── payment/               # Stripe, Google Play, Apple IAP
+│   ├── storage/               # AWS S3
 │   └── fcm/                   # Firebase Admin SDK
 ├── presentation/
-│   ├── routes/                # user, auth, payment
+│   ├── routes/                # user, auth, payment, file
 │   └── middleware/            # JWT, Rate Limit, Error Handler, Logger
 ├── validation/                # Zod 스키마
 ├── shared/
@@ -53,15 +56,6 @@ config/
 tests/
 └── user/                      # Use Case 테스트 (26개)
 ```
-src/
-├── domain/              # 엔티티
-├── application/         # Use Cases, Repository 인터페이스
-├── infrastructure/      # DB 구현체
-├── presentation/        # Express 라우트, 미들웨어
-├── validation/          # Zod 스키마
-├── shared/              # Logger, 에러
-└── container.ts         # DI Container
-```
 
 ## API
 
@@ -71,6 +65,7 @@ src/
 - `GET /v1/auth/google`, `GET /v1/auth/google/callback`
 - `POST /v1/payment/webhooks/stripe`, `POST /v1/payment/webhooks/apple`
 - `GET /v1/payment/:paymentId`, `GET /v1/payment/users/:userId`, `POST /v1/payment/:paymentId/refund`
+- `POST /v1/files/upload`, `GET /v1/files/:fileId`, `GET /v1/files/:fileId/download`, `DELETE /v1/files/:fileId`
 
 응답 포맷: `{ data, meta }`
 
@@ -82,4 +77,5 @@ src/
 - **보안**: JWT, OAuth, Rate Limit, CORS, Helmet
 - **결제**: Stripe, Google Play Pub/Sub, Apple IAP (환불/분쟁 지원)
 - **배치**: FCM 푸시 스케줄링 (node-cron)
+- **파일 업로드**: S3 업로드, 용량 체크, 이미지 압축, Signed URL 조회
 - **Docker**: 멀티스테이지 빌드, Profile 기반 DB 선택
